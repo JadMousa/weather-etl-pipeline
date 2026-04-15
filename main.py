@@ -2,6 +2,7 @@ import logging
 from scripts.extract import extract_weather
 from scripts.transform import transform_data
 from scripts.load import load_data
+from scripts.advice import get_weather_advice
 
 logging.basicConfig(
     filename="logs/weather_etl.log",
@@ -23,6 +24,17 @@ def main():
         return
 
     load_data(transformed_data)
+    audience = input("Enter audience (general / worker / tourist): ").strip().lower()
+    advice = get_weather_advice(transformed_data, audience)
+
+    print("\nWeather ETL pipeline finished successfully.")
+    print(f"City: {transformed_data['city']}")
+    print(f"Temperature: {transformed_data['temperature']}°C")
+    print(f"Humidity: {transformed_data['humidity']}%")
+    print(f"Description: {transformed_data['description']}")
+    print(f"Audience: {audience}")
+    print(f"Advice: {advice}")
+
     logging.info("Weather ETL pipeline finished successfully")
 
 if __name__ == "__main__":
