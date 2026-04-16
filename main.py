@@ -3,6 +3,7 @@ from scripts.extract import extract_weather
 from scripts.transform import transform_data
 from scripts.load import load_data
 from scripts.advice import get_weather_advice
+from scripts.s3_upload import save_raw_to_s3
 
 logging.basicConfig(
     filename="logs/weather_etl.log",
@@ -17,6 +18,8 @@ def main():
     if data is None:
         logging.error("Extraction failed")
         return
+    
+    save_raw_to_s3(data)   
 
     transformed_data = transform_data(data)
     if transformed_data is None:
