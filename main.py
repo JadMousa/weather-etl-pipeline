@@ -19,7 +19,10 @@ def main():
         logging.error("Extraction failed")
         return
     
-    save_raw_to_s3(data)   
+    try:
+        save_raw_to_s3(data)
+    except Exception as e:
+        logging.warning(f"S3 upload skipped: {e}")  
 
     transformed_data = transform_data(data)
     if transformed_data is None:
