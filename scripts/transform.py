@@ -10,7 +10,8 @@ def transform_data(data):
         "humidity": int(data["humidity"]),
         "description": data["description"].lower(),
         "timestamp": int(data["timestamp"]),
-        "datetime": datetime.fromtimestamp(data["timestamp"])
+        "datetime": datetime.fromtimestamp(data["timestamp"]), # API datetime
+        "run_time": datetime.now()   # scheduler execution time
     }
 
     return transformed

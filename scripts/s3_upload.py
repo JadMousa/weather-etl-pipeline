@@ -1,6 +1,7 @@
 import boto3
 import json
 from datetime import datetime
+import logging
 
 def save_raw_to_s3(data):
     s3 = boto3.client('s3')
@@ -16,4 +17,4 @@ def save_raw_to_s3(data):
         Body=json.dumps(data)
     )
 
-    print(f"Saved raw data to S3: {key}")
+    logging.info(f"Saved raw data to S3: {key}")

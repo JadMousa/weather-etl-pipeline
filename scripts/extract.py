@@ -11,7 +11,7 @@ def extract_weather():
     url = f"https://api.openweathermap.org/data/2.5/weather?lat=31.95&lon=35.91&appid={API_KEY}&units=metric"
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -31,5 +31,5 @@ def extract_weather():
             return None
 
     except Exception as e:
-        print("Request failed:", e)
+        logging.error(f"Request failed: {e}")
         return None
