@@ -6,12 +6,36 @@ This project implements an ETL pipeline that collects real-time weather data fro
 In addition to the core ETL functionality, the project introduces a simple **interpretation layer** that converts raw weather data into **actionable insights for different user types** (e.g., general users, outdoor workers, tourists).
 This demonstrates how data pipelines can move beyond storage and support real-world decision-making.
 
+This pipeline simulates a real-world data engineering workflow where data is ingested, stored in a data lake (S3), transformed, and loaded into a structured data warehouse.
+
+The goal is to demonstrate how data engineers design reliable and scalable systems, not just move data between components.
+
 ---
 
+## Architecture
+
+        OpenWeather API
+                ↓
+        Extract (Python)
+                ↓
+        S3 (Raw Data Layer)
+                ↓
+        Transform (Python)
+                ↓
+        PostgreSQL (city_dim + weather_fact)
+                ↓
+        Insights (Advice Layer)
+
+        Logging applied across all stages
+
+---
 ## Tech Stack
-- Python
-- PostgreSQL
-- OpenWeather API
+- Python (ETL pipeline)
+- PostgreSQL (data warehouse - fact/dimension schema)
+- AWS S3 (raw data storage - data lake layer)
+- OpenWeather API (data source)
+- Logging (pipeline monitoring)
+- Windows Task Scheduler (automation)
 
 ---
 
@@ -58,13 +82,17 @@ This highlights how data pipelines can support **decision-making**, not just dat
 
 ---
 
-## Key Design Decisions
+## Design Decisions
 
 - Used latitude and longitude instead of city name to ensure accurate data retrieval
 - Stored both timestamp and datetime to support raw data integrity and readable analysis
 - Implemented duplicate prevention using database constraints
 - Separated database connection logic for better code organization
 - Kept ETL logic separate from user-oriented interpretation by introducing a dedicated advice layer
+- Used S3 as a raw data layer to separate ingestion from processing
+- Implemented star schema (city_dim + weather_fact) for scalable analytics
+- Used database constraints + ON CONFLICT to ensure data integrity
+- Designed pipeline to support multiple cities (currently using one for simplicity)
 
 ## How to Run
 1. Create .env file:

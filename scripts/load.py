@@ -21,13 +21,34 @@ def load_data(data):
         conn = get_connection()
         cursor = conn.cursor()
 
-        query = """
-        INSERT INTO weather_data (city, temperature, humidity, description, timestamp, datetime, run_time)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
+        # 1. Insert city OR get existing city_id
+        cursor.execute("""
+            INSERT INTO city_dim (city_name)
+            VALUES (%s)
+            ON CONFLICT (city_name) DO NOTHING
+            RETURNING id;
+        """, (data["city"],))
 
-        cursor.execute(query, (
-            data["city"],
+        result = cursor.fetchone()
+
+        if result:
+            city_id = result[0]
+        else:
+            cursor.execute(
+                "SELECT id FROM city_dim WHERE city_name = %s",
+                (data["city"],)
+            )
+            city_id = cursor.fetchone()[0]
+
+        # 2. Insert weather data (fact table)
+        cursor.execute("""
+            INSERT INTO weather_fact (
+                city_id, temperature, humidity, description, timestamp, datetime, run_time
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (city_id, timestamp) DO NOTHING;
+        """, (
+            city_id,
             data["temperature"],
             data["humidity"],
             data["description"],
@@ -38,22 +59,17 @@ def load_data(data):
 
         conn.commit()
 
-        logging.info(f"cursor.rowcount={cursor.rowcount}")
-
         if cursor.rowcount == 1:
-            logging.info("Data inserted successfully")
+            logging.info("New record inserted into weather_fact")
         else:
-            logging.warning(
-                f"No row inserted. Likely duplicate conflict for "
-                f"city={data['city']} timestamp={data['timestamp']}"
-            )
+            logging.warning("Duplicate detected → skipped insert")
 
     except Exception as e:
         logging.exception(f"Database error: {e}")
         raise
 
     finally:
-        if cursor is not None:
+        if cursor:
             cursor.close()
-        if conn is not None:
+        if conn:
             conn.close()
