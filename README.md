@@ -1,109 +1,170 @@
 # Weather ETL Pipeline
 
 ## Overview
-This project implements an ETL pipeline that collects real-time weather data from the OpenWeather API, transforms it into a structured format, and stores it in PostgreSQL for time-series analysis.
 
-In addition to the core ETL functionality, the project introduces a simple **interpretation layer** that converts raw weather data into **actionable insights for different user types** (e.g., general users, outdoor workers, tourists).
-This demonstrates how data pipelines can move beyond storage and support real-world decision-making.
+A production-style ETL pipeline that collects real-time weather data from the OpenWeather API,
+transforms it into a structured format, stores it in PostgreSQL, and orchestrates execution
+across multiple cities using Apache Airflow.
 
-This pipeline simulates a real-world data engineering workflow where data is ingested, stored in a data lake (S3), transformed, and loaded into a structured data warehouse.
-
-The goal is to demonstrate how data engineers design reliable and scalable systems, not just move data between components.
+The pipeline also includes an interpretation layer that converts raw weather data into
+actionable insights for different user types — demonstrating how data pipelines can support
+real-world decision-making, not just data storage.
 
 ---
 
 ## Architecture
 
-        OpenWeather API
-                ↓
-        Extract (Python)
-                ↓
-        S3 (Raw Data Layer)
-                ↓
-        Transform (Python)
-                ↓
-        PostgreSQL (city_dim + weather_fact)
-                ↓
-        Insights (Advice Layer)
+```
+OpenWeather API
+      ↓
+Extract (Python)
+      ↓
+S3 (Raw Data Lake)
+      ↓
+Transform (Python)
+      ↓
+PostgreSQL (city_dim + weather_fact)
+      ↓
+Insights (Advice Layer)
 
-        Logging applied across all stages
+Airflow orchestrates all stages on an hourly schedule.
+Logging applied across all stages.
+```
 
 ---
+
 ## Tech Stack
-- Python (ETL pipeline)
-- PostgreSQL (data warehouse - fact/dimension schema)
-- AWS S3 (raw data storage - data lake layer)
-- OpenWeather API (data source)
-- Logging (pipeline monitoring)
-- Windows Task Scheduler (automation)
+
+| Tool | Purpose |
+|------|---------|
+| Python | ETL pipeline logic |
+| Apache Airflow | Workflow orchestration & scheduling |
+| PostgreSQL | Data warehouse (star schema) |
+| AWS S3 | Raw data lake layer |
+| OpenWeather API | Data source |
+| dotenv | Secure configuration management |
+
+---
+
+## Airflow DAG
+
+The pipeline runs as an Airflow DAG with one task per city, executing in parallel on an hourly schedule.
+
+![Airflow DAG](airflow_images/airflow_dag.png)
+
+**Cities monitored:**
+- Amman, Jordan
+- Dubai, UAE
+- Riyadh, Saudi Arabia
+- Cairo, Egypt
+- Beirut, Lebanon
 
 ---
 
 ## Pipeline Steps
-1. **Extract**: Retrieve real-time weather data using API calls (`requests`)
-2. **Transform**: Clean, standardize, and structure the data (type casting, timestamp conversion)
-3. **Load**: Insert structured data into PostgreSQL with duplicate prevention
+
+1. **Extract** — Retrieves real-time weather data via OpenWeather API using lat/lon coordinates. Retries up to 3 times on failure.
+2. **Transform** — Cleans and structures the data: type casting, Unix timestamp conversion, datetime formatting.
+3. **Load** — Inserts structured data into PostgreSQL with duplicate prevention using ON CONFLICT constraints.
+
+---
+
+## Data Model
+
+```
+city_dim                    weather_fact
+─────────────────           ──────────────────────────
+id (PK)                     id (PK)
+city_name (UNIQUE)          city_id (FK → city_dim)
+                            temperature
+                            humidity
+                            description
+                            timestamp
+                            datetime
+                            run_time
+```
 
 ---
 
 ## Features
-- Uses environment variables (`.env`) for secure configuration
-- Prevents duplicate inserts using database constraints
-- Converts Unix timestamps to human-readable datetime
-- Logs pipeline execution for monitoring and debugging
-- Modular code structure (separation of extract, transform, load)
-- **Audience-based insight generation (post-ETL layer)**
+
+- Multi-city support — pipeline scales to any number of cities via configuration
+- Duplicate prevention using database constraints and ON CONFLICT
+- Retry logic — each city retries up to 3 times on API failure
+- Environment variables for secure credential management
+- Modular code structure — extract, transform, load fully separated
+- S3 raw data layer — separates ingestion from processing
+- Audience-based insight generation — tailored advice for general users, outdoor workers, and tourists
+- Full logging across all pipeline stages
 
 ---
 
 ## Example Output
 
-Enter audience (general / worker / tourist): tourist
-
-City: Amman  
-Temperature: 19.73°C  
-Humidity: 34%  
-Description: overcast clouds  
-Advice: Good weather for sightseeing.
+```
+────────────────────────────────────────
+City:        Amman
+Temperature: 21.4°C
+Humidity:    17%
+Description: clear sky
+Audience:    general
+Advice:      Weather is cool and comfortable today.
+────────────────────────────────────────
+Pipeline complete — 5 succeeded, 0 failed
+```
 
 ---
 
-## Use Case: From Data to Insights
+## Project Evolution
 
-This project extends a traditional ETL pipeline by demonstrating how the same dataset can serve different user needs.
+This project was built incrementally to simulate real-world data engineering practices:
 
-After processing and storing the data, the system generates tailored outputs:
-
-- **General Users** → Daily weather advice  
-- **Outdoor Workers / Companies** → Heat risk and safety guidance  
-- **Tourists** → Travel and sightseeing recommendations  
-
-This highlights how data pipelines can support **decision-making**, not just data storage.
+- **v1** — Single-city Python ETL script with manual execution
+- **v2** — Windows Task Scheduler for basic automation
+- **v3** — AWS S3 integration as a raw data lake layer
+- **v4** — Multi-city support with configurable CITIES list
+- **v5** — Apache Airflow for professional orchestration, scheduling, and monitoring
 
 ---
 
 ## Design Decisions
 
-- Used latitude and longitude instead of city name to ensure accurate data retrieval
-- Stored both timestamp and datetime to support raw data integrity and readable analysis
-- Implemented duplicate prevention using database constraints
-- Separated database connection logic for better code organization
-- Kept ETL logic separate from user-oriented interpretation by introducing a dedicated advice layer
-- Used S3 as a raw data layer to separate ingestion from processing
-- Implemented star schema (city_dim + weather_fact) for scalable analytics
-- Used database constraints + ON CONFLICT to ensure data integrity
-- Designed pipeline to support multiple cities (currently using one for simplicity)
+- Used **latitude and longitude** instead of city name for accurate API data retrieval
+- **City names are configured** in code rather than relying on API-returned names, ensuring consistency in the database
+- Stored both **Unix timestamp and datetime** to support raw data integrity and readable analysis
+- **Star schema** (city_dim + weather_fact) for scalable analytics
+- **ON CONFLICT** constraints ensure idempotent inserts — safe to re-run without duplicates
+- Separated **database connection logic** for better code organization
+- **Advice layer kept separate** from ETL logic to maintain clean separation of concerns
+
+---
 
 ## How to Run
-1. Create .env file:
-   API_KEY=your_key
-   DB_NAME=...
-   DB_USER=...
-   DB_PASSWORD=...
-   DB_HOST=localhost
+
+1. Create a `.env` file:
+```
+API_KEY=your_openweather_key
+DB_NAME=weather_etl
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_HOST=localhost
+```
 
 2. Install dependencies:
-   pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
-3. Run:
-   python main.py
+3. Run manually:
+```bash
+python main.py
+```
+
+4. Run via Airflow:
+```bash
+export AIRFLOW_HOME=~/airflow
+source ~/airflow-env/bin/activate
+airflow webserver --port 8080
+airflow scheduler
+```
+Then open `http://localhost:8080` and trigger the `weather_etl_pipeline` DAG.
