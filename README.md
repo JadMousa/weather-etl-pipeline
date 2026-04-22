@@ -50,7 +50,7 @@ Logging applied across all stages.
 
 The pipeline runs as an Airflow DAG with one task per city, executing in parallel on an hourly schedule.
 
-![Airflow DAG](airflow_image/airflow_dag.png)
+![Airflow DAG](./airflow_image/airflow_evidence.png)
 
 **Cities monitored:**
 - Amman, Jordan
