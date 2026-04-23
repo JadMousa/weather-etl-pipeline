@@ -61,6 +61,25 @@ The pipeline runs as an Airflow DAG with one task per city, executing in paralle
 
 ---
 
+## Automation Validation
+
+The pipeline is fully automated using Apache Airflow with an hourly schedule (`@hourly`).
+
+Automation was validated by:
+
+- Observing scheduled DAG runs executed without manual triggering
+- Verifying new records were inserted into PostgreSQL automatically over time
+- Confirming row count increases across runs without user interaction
+
+Example:
+
+- Initial row count: 15  
+- After scheduled run (no manual trigger): 20  
+
+This confirms the pipeline executes automatically based on the Airflow scheduler.
+
+---
+
 ## Pipeline Steps
 
 1. **Extract** — Retrieves real-time weather data via OpenWeather API using lat/lon coordinates. Retries up to 3 times on failure.
