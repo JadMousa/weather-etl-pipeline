@@ -1,4 +1,5 @@
-requests
-python-dotenv
-psycopg2-binary
-boto3
+requests==2.31.0
+python-dotenv==1.2.2
+psycopg2-binary==2.9.12
+boto3==1.42.93
+apache-airflow==2.9.1
